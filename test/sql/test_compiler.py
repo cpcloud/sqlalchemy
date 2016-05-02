@@ -2329,6 +2329,36 @@ class SelectTest(fixtures.TestBase, AssertsCompiledSQL):
             "(ORDER BY mytable.myid + :myid_1) AS anon_1 FROM mytable"
         )
 
+        # frame specification
+        expr = table1.c.myid
+        self.assert_compile(
+            select([func.row_number().over(order_by=expr, rows={'preceding': 0, 'following': None})]),
+            "SELECT row_number() OVER "
+            "(ORDER BY mytable.myid ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)"
+            " AS anon_1 FROM mytable"
+        )
+
+        self.assert_compile(
+            select([func.row_number().over(order_by=expr, rows={'following': None})]),
+            "SELECT row_number() OVER "
+            "(ORDER BY mytable.myid ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)"
+            " AS anon_1 FROM mytable"
+        )
+
+        self.assert_compile(
+            select([func.row_number().over(order_by=expr, range={'preceding': None, 'following': 0})]),
+            "SELECT row_number() OVER "
+            "(ORDER BY mytable.myid RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)"
+            " AS anon_1 FROM mytable"
+        )
+
+        self.assert_compile(
+            select([func.row_number().over(order_by=expr, rows={})]),
+            "SELECT row_number() OVER "
+            "(ORDER BY mytable.myid)"
+            " AS anon_1 FROM mytable"
+        )
+
     def test_date_between(self):
         import datetime
         table = Table('dt', metadata,
